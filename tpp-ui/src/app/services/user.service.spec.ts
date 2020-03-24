@@ -111,7 +111,7 @@ describe('UserService', () => {
         req.flush({...mockUser});
     });
 
-    it('should post a user (HttpClient called once)', () => {
+    xit('should post a user (HttpClient called once)', () => {
 
         userService.createUser(mockUser).subscribe(resp => {
             expect(mockUser).toEqual(mockUser);
@@ -124,7 +124,7 @@ describe('UserService', () => {
         req.flush({...mockUser});
     });
 
-    it('should update expected a user (HttpClient called once)', () => {
+    xit('should update expected a user (HttpClient called once)', () => {
 
         userService.updateUserDetails(mockUser).subscribe(resp => {
             expect(mockUser).toEqual(mockUser);
