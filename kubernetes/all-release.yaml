@@ -1,0 +1,1196 @@
+apiVersion: v1
+data:
+  bank_profile_ledgers.yml: |
+    setting:
+      ais:
+        consentTypes:
+          bankOfferedConsentSupported: TRUE
+          globalConsentSupported: TRUE
+          availableAccountsConsentSupported: TRUE
+          accountAccessFrequencyPerDay: 4
+          notConfirmedConsentExpirationTimeMs: 86400000
+          maxConsentValidityDays: 90
+          accountOwnerInformationSupported: false
+        redirectLinkToOnlineBanking:
+          aisRedirectUrlToAspsp: https://xs2a-online-banking-ui.adorsys.staging.tribefire.cloud/account-information/login?encryptedConsentId={encrypted-consent-id}&redirectId={redirect-id}
+        transactionParameters:
+          availableBookingStatuses:
+            - BOOKED
+          transactionsWithoutBalancesSupported: TRUE
+          supportedTransactionApplicationTypes:
+            - application/json
+        deltaReportSettings:
+          entryReferenceFromSupported: FALSE
+          deltaListSupported: FALSE
+        scaRequirementsForOneTimeConsents:
+          scaByOneTimeAvailableAccountsConsentRequired: TRUE
+          scaByOneTimeGlobalConsentRequired: TRUE
+      pis:
+        supportedPaymentTypeAndProductMatrix:
+          SINGLE:
+            - sepa-credit-transfers
+            - instant-sepa-credit-transfers
+            - target-2-payments
+            - cross-border-credit-transfers
+          PERIODIC:
+            - sepa-credit-transfers
+            - instant-sepa-credit-transfers
+            - target-2-payments
+            - cross-border-credit-transfers
+          BULK:
+            - sepa-credit-transfers
+            - instant-sepa-credit-transfers
+            - target-2-payments
+            - cross-border-credit-transfers
+        maxTransactionValidityDays: 0
+        notConfirmedPaymentExpirationTimeMs: 86400000
+        paymentCancellationAuthorisationMandated: FALSE
+        redirectLinkToOnlineBanking:
+          pisRedirectUrlToAspsp: "https://xs2a-online-banking-ui.adorsys.staging.tribefire.cloud/payment-initiation/login?paymentId={encrypted-payment-id}&redirectId={redirect-id}"
+          pisPaymentCancellationRedirectUrlToAspsp: "https://xs2a-online-banking-ui.adorsys.staging.tribefire.cloud/payment-cancellation/login?paymentId={encrypted-payment-id}&redirectId={redirect-id}"
+          paymentCancellationRedirectUrlExpirationTimeMs: 600000
+        countryValidationSupported: DE
+        supportedTransactionStatusFormats:
+          - application/json
+      piis:
+        piisConsentSupported: TRUE
+      common:
+        scaApproachesSupported:
+          - EMBEDDED
+          - REDIRECT
+          - DECOUPLED
+          - OAUTH
+        scaRedirectFlow: REDIRECT
+        oauthConfigurationUrl: http://xs2a-online-banking:8090/oauth/authorization-server
+        startAuthorisationMode: auto
+        tppSignatureRequired: FALSE
+        psuInInitialRequestMandated: FALSE
+        redirectUrlExpirationTimeMs: 600000
+        authorisationExpirationTimeMs: 86400000
+        forceXs2aBaseLinksUrl: FALSE
+        xs2aBaseLinksUrl: http://myhost.com/
+        supportedAccountReferenceFields:
+          - IBAN
+        multicurrencyAccountLevelSupported: SUBACCOUNT
+        aisPisSessionsSupported: FALSE
+        signingBasketSupported: FALSE
+        checkTppRolesFromCertificateSupported: FALSE
+        aspspNotificationsSupported:
+          - NONE
+        authorisationConfirmationRequestMandated: FALSE
+        authorisationConfirmationCheckByXs2a: FALSE
+        checkUriComplianceToDomainSupported: FALSE
+kind: ConfigMap
+metadata:
+  name: bank-profile
+  namespace: psd2-sandbox
+---
+apiVersion: v1
+data:
+  zzz-create-schema.sh: |
+    #!/usr/bin/env bash
+
+    # create consent schema and give permissions to cms user. Needed for
+    # docker-compose so  that we can start the DB with the schema already being present
+    set -e
+    echo "Create schema='consent' for local postgres installation"
+    psql -U postgres -d consent -c 'CREATE SCHEMA IF NOT EXISTS consent AUTHORIZATION cms;'
+
+    echo "Create schema='ledgers' for local postgres installation"
+    psql -U postgres -d consent -c 'CREATE SCHEMA IF NOT EXISTS ledgers AUTHORIZATION cms;'
+kind: ConfigMap
+metadata:
+  name: create-schema
+  namespace: psd2-sandbox
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-aspsp-profile-claim0
+  name: xs2a-aspsp-profile-claim0
+  namespace: psd2-sandbox
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-connector-data
+  name: xs2a-connector-data
+  namespace: psd2-sandbox
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-consent-management-db-claim1
+  name: xs2a-consent-management-db-claim1
+  namespace: psd2-sandbox
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-fakesmtp-data
+  name: xs2a-fakesmtp-data
+  namespace: psd2-sandbox
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-ledgers-data
+  name: xs2a-ledgers-data
+  namespace: psd2-sandbox
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-tpp-rest-server-data
+  name: xs2a-tpp-rest-server-data
+  namespace: psd2-sandbox
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: certificate-generator
+  name: certificate-generator
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "8092"
+    port: 8092
+    targetPort: 8092
+  selector:
+    io.kompose.service: certificate-generator
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: developer-portal-ui
+  name: developer-portal-ui
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "4206"
+    port: 4206
+    targetPort: 4206
+  selector:
+    io.kompose.service: developer-portal-ui
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: ledgers.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: ledgers
+  name: ledgers
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "8088"
+    port: 8088
+    targetPort: 8088
+  - name: "8188"
+    port: 8188
+    targetPort: 8001
+  selector:
+    io.kompose.service: ledgers
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: xs2a-aspsp-profile.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-aspsp-profile
+  name: xs2a-aspsp-profile
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "48080"
+    port: 48080
+    targetPort: 8080
+  selector:
+    io.kompose.service: xs2a-aspsp-profile
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: xs2a-connector-examples.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-connector-examples
+  name: xs2a-connector-examples
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "8089"
+    port: 8089
+    targetPort: 8089
+  - name: "8189"
+    port: 8189
+    targetPort: 8000
+  selector:
+    io.kompose.service: xs2a-connector-examples
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-consent-management-db
+  name: xs2a-consent-management-db
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "5432"
+    port: 5432
+    targetPort: 5432
+  selector:
+    io.kompose.service: xs2a-consent-management-db
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: xs2a-consent-management.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-consent-management
+  name: xs2a-consent-management
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "38080"
+    port: 38080
+    targetPort: 8080
+  selector:
+    io.kompose.service: xs2a-consent-management
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: xs2a-online-banking-ui.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-online-banking-ui
+  name: xs2a-online-banking-ui
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "4400"
+    port: 4400
+    targetPort: 4400
+  selector:
+    io.kompose.service: xs2a-online-banking-ui
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: xs2a-online-banking.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-online-banking
+  name: xs2a-online-banking
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "8090"
+    port: 8090
+    targetPort: 8090
+  - name: "8190"
+    port: 8190
+    targetPort: 8000
+  selector:
+    io.kompose.service: xs2a-online-banking
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-tpp-rest-server
+  name: xs2a-tpp-rest-server
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "8093"
+    port: 8093
+    targetPort: 8093
+  - name: "5005"
+    port: 5005
+    targetPort: 5005
+  selector:
+    io.kompose.service: xs2a-tpp-rest-server
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-tpp-ui
+  name: xs2a-tpp-ui
+  namespace: psd2-sandbox
+spec:
+  ports:
+  - name: "4205"
+    port: 4205
+    targetPort: 4205
+  selector:
+    io.kompose.service: xs2a-tpp-ui
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: certificate-generator
+  name: certificate-generator
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: certificate-generator
+    spec:
+      containers:
+      - image: adorsys/xs2a-certificate-generator:3.2
+        name: certificate-generator
+        ports:
+        - containerPort: 8092
+        resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: developer-portal-ui
+  name: developer-portal-ui
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: developer-portal-ui
+    spec:
+      containers:
+      - env:
+        - name: ASPSP_URL
+          value: http://xs2a-aspsp-profile.psd2-sandbox.svc.cluster.local:48080
+        - name: ENVLINK_ASPSP_PROFILE_SWAGGER
+          value: https://dev-dynamicsandbox-aspspprofile.cloud.adorsys.de
+        - name: ENVLINK_CERTIFICATE_GENERATOR
+          value: https://dev-dynamicsandbox-certificategenerator.cloud.adorsys.de/swagger-ui.html
+        - name: ENVLINK_CONSENT_MANAGEMENT_SYSTEM
+          value: https://dev-dynamicsandbox-cms.cloud.adorsys.de
+        - name: ENVLINK_DEVELOPER_PORTAL
+          value: https://dev-dynamicsandbox-developerportalui.cloud.adorsys.de/
+        - name: ENVLINK_LEDGERS
+          value: https://dev-dynamicsandbox-ledgers.cloud.adorsys.de
+        - name: ENVLINK_ONLINE_BANKING_BACKEND
+          value: https://dev-dynamicsandbox-onlinebanking.cloud.adorsys.de/swagger-ui.html
+        - name: ENVLINK_ONLINE_BANKING_UI
+          value: https://dev-dynamicsandbox-onlinebankingui.cloud.adorsys.de/account-information/login
+        - name: ENVLINK_TPP_UI
+          value: https://blub-dynamicsandbox-tppui.cloud.adorsys.de/login
+        - name: ENVLINK_XS2A_INTERFACE_SWAGGER
+          value: https://dev-dynamicsandbox-xs2a.cloud.adorsys.de/
+        - name: XS2A_URL
+          value: http://xs2a-connector-examples.psd2-sandbox.svc.cluster.local:8089
+        image: adorsys/xs2a-bank-devportal:3.2
+        name: developer-portal-ui
+        ports:
+        - containerPort: 4206
+        resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: fakesmtp
+  name: fakesmtp
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: fakesmtp
+    spec:
+      containers:
+      - image: munkyboy/fakesmtp:latest
+        name: fakesmtp
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/mail
+          name: xs2a-fakesmtp-data
+      restartPolicy: Always
+      volumes:
+      - name: xs2a-fakesmtp-data
+        persistentVolumeClaim:
+          claimName: xs2a-fakesmtp-data
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: ledgers.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: ledgers
+  name: ledgers
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.service.expose: ledgers.adorsys.staging.tribefire.cloud
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: ledgers
+    spec:
+      containers:
+      - env:
+        - name: DB_DATABASE
+          value: consent
+        - name: DB_HOST
+          value: xs2a-consent-management-db.psd2-sandbox.svc.cluster.local
+        - name: DB_PASSWORD
+          value: cms
+        - name: DB_URL
+          value: jdbc:postgresql://xs2a-consent-management-db.psd2-sandbox.svc.cluster.local/consent?currentSchema=ledgers
+        - name: DB_USER
+          value: cms
+        - name: LIQUIBASE_ENABLED
+          value: "true"
+        - name: SCA_MULTILEVEL_ENABLED
+          value: "false"
+        - name: SPRING_JPA_SHOW_SQL
+          value: "false"
+        - name: SPRING_MAIL_HOST
+          value: fakesmtp
+        - name: SPRING_MAIL_PORT
+          value: "25"
+        - name: AUTHORISATION_CONFIRMATION_ENABLED
+          value: "false"
+        - name: SPRING_PROFILES_ACTIVE
+          value: postgres,develop
+        image: adorsys/ledgers:2.9
+        name: ledgers
+        ports:
+        - containerPort: 8088
+        - containerPort: 8001
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/lib/data
+          name: xs2a-ledgers-data
+      restartPolicy: Always
+      volumes:
+      - name: xs2a-ledgers-data
+        persistentVolumeClaim:
+          claimName: xs2a-ledgers-data
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: xs2a-aspsp-profile.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-aspsp-profile
+  name: xs2a-aspsp-profile
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.service.expose: xs2a-aspsp-profile.adorsys.staging.tribefire.cloud
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: xs2a-aspsp-profile
+    spec:
+      containers:
+      - env:
+        - name: BANK_PROFILE_PATH
+          value: bank_profile_ledgers.yml
+        - name: JAVA_TOOL_OPTIONS
+          value: '"-Xmx256M"'
+        - name: SPRING_PROFILES_ACTIVE
+          value: debug_mode
+        image: adorsys/xs2a-aspsp-profile:5.11
+        name: xs2a-aspsp-profile
+        ports:
+        - containerPort: 8080
+        resources: {}
+        volumeMounts:
+        - mountPath: /opt/profile/bank_profile_ledgers.yml
+          name: bank-profile
+          subPath: bank_profile_ledgers.yml
+      volumes:
+      - configMap:
+          name: bank-profile
+        name: bank-profile
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: xs2a-connector-examples.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-connector-examples
+  name: xs2a-connector-examples
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.service.expose: xs2a-connector-examples.adorsys.staging.tribefire.cloud
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: xs2a-connector-examples
+    spec:
+      containers:
+      - env:
+        - name: ASPSP-PROFILE_BASEURL
+          value: http://xs2a-aspsp-profile.psd2-sandbox.svc.cluster.local:48080/api/v1
+        - name: CMS_URL
+          value: http://xs2a-consent-management.psd2-sandbox.svc.cluster.local:38080
+        - name: CONSENT-SERVICE_BASEURL
+          value: http://xs2a-consent-management.psd2-sandbox.svc.cluster.local:38080/api/v1
+        - name: LEDGERS_URL
+          value: http://ledgers.psd2-sandbox.svc.cluster.local:8088
+        - name: SPRING_PROFILES_ACTIVE
+          value: mock-qwac
+        - name: QWAC_CERTIFICATE_MOCK
+          value: "-----BEGIN CERTIFICATE-----MIIFTzCCAzegAwIBAgIEMAVOsDANBgkqhkiG9w0BAQsFADB4MQswCQYDVQQGEwJERTEQMA4GA1UECAwHQkFWQVJJQTESMBAGA1UEBwwJTnVyZW1iZXJnMSIwIAYDVQQKDBlUcnVzdCBTZXJ2aWNlIFByb3ZpZGVyIEFHMR8wHQYDVQQLDBZJbmZvcm1hdGlvbiBUZWNobm9sb2d5MCAXDTIwMDMwNTE2MDczMloYDzIxMjAwMjEwMDAwMDAwWjCB2DEhMB8GA1UECgwYRmljdGlvbmFsIENvcnBvcmF0aW9uIEFHMRUwEwYDVQQDDAxYUzJBIFNhbmRib3gxJTAjBgoJkiaJk/IsZAEZFhVwdWJsaWMuY29ycG9yYXRpb24uZGUxHzAdBgNVBAsMFkluZm9ybWF0aW9uIFRlY2hub2xvZ3kxEDAOBgNVBAYTB0dlcm1hbnkxDzANBgNVBAgMBkJheWVybjESMBAGA1UEBwwJTnVyZW1iZXJnMR0wGwYDVQRhDBRQU0RERS1GQUtFTkNBLTg3QjJBQzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKGBWsKzLRronye/oxCFXIbSR6HVY3+D2lGycdtoUBqkZRJ3WwwKDobR5fln8rk/ucBnT9u61n1C/GUzEAfE496k3ecGTC9Bd1Vw8tKBfI2hunUM+tl11RuowkNf6h6UA9OoprKpeX0epbZRrazyNqgVcYVtkK5uMui9sEAymBdWToGj4ddZIPFIFdjXxEigsXQrj6Ni23ufvLiTNSMVutnvmcw90nngkeXrOl/KCjzbUss5sgSuQeKU9gE1g0qsLFC9lym16D9b83Gr+Sal0hrTKWn0wHDvlTAjA8MG7eAzzPQ/DcOUhEm53UfcmWb4OpP/G2SshCdnExu7pwGxknsCAwEAAaN+MHwwegYIKwYBBQUHAQMEbjBsBgYEAIGYJwIwYjA5MBEGBwQAgZgnAQMMBlBTUF9BSTARBgcEAIGYJwECDAZQU1BfUEkwEQYHBACBmCcBBAwGUFNQX0lDDBlUcnVzdCBTZXJ2aWNlIFByb3ZpZGVyIEFHDApERS1GQUtFTkNBMA0GCSqGSIb3DQEBCwUAA4ICAQA3MHbrts2efCHcWR2Rw7iFfy5akIcXjRGmKpRpc+nRA5bY46WUmV1VutL2A1LwrzchL2J14y3MhmgKIhkcEEQly8rmucbct3kYYi4LYPYLaNlbf2L4gOJ2heLFCHsqtAwu2eV0NNMDXHGRbL3lmbe4Ahfv7WOK9BA0R603NEszL7zM7zzvmhI4xTgS6vHtG3jm7HbefjJixuGp1kSqGCdgTENoLETUi9jcL7cpf31nMhm+kKZsJTJbMEHCnFyti5DNvYLK7qJG2GUeXU1V58gF4J2do9aBNoqT9L2dEhrxzzUD7oSIL1LEeyRwwjCXTuGBBXp8D+XUWiWAKXpO7nh6LAOPv5VR9fJWZHp/7wT9BDF+u+IvQdUjJQhvxLcJI/lv8fBb8MJWl/4yIYlCGeNMkGPlMSMVuC09E1KHVQ8Xg6BFeJTeDg79wB1SkKTcsOXy5sDHBLXJ5gTX7R0UFjLOJU0LgSqQcJuiBLH+eRjLjv93qeSQCXkhZs4zAawS+EpS5KyykyrroOJ1i+LaSvdbs/7gq67rsP9GajMawcRZtW8t9yVJt7uW9ZikdwR36vhqJ+ovktjDcomKUqPYUukSrtzgMpUESS5QSRT3xaf46Q4wvw93KUzl0ca2srQNR6FmEyGueqITyk4c4lgw20ii8egJjPO/PdT8vLA5UgSQ5Q==-----END CERTIFICATE-----"
+        image: adorsys/xs2a-connector-examples:5.11.1
+        name: xs2a-connector-examples
+        ports:
+        - containerPort: 8089
+        - containerPort: 8000
+        resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-consent-management-db
+  name: xs2a-consent-management-db
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: xs2a-consent-management-db
+    spec:
+      containers:
+      - env:
+        - name: POSTGRESQL_ADMIN_PASSWORD
+          value: postgres
+        - name: POSTGRESQL_DATABASE
+          value: consent
+        - name: POSTGRESQL_PASSWORD
+          value: cms
+        - name: POSTGRESQL_USER
+          value: cms
+        image: centos/postgresql-95-centos7
+        name: xs2a-consent-management-db
+        ports:
+        - containerPort: 5432
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/lib/pgsql/data
+          name: xs2a-connector-data
+        - mountPath: /usr/share/container-scripts/postgresql/start/zzz-create-schema.sh
+          name: startup-script
+          subPath: zzz-create-schema.sh
+      initContainers:
+      - args:
+        - |
+          chmod a+rw -R /var/lib/pgsql
+        command:
+        - /bin/sh
+        - -c
+        image: alpine
+        imagePullPolicy: Always
+        name: postgres-checker
+        volumeMounts:
+        - mountPath: /var/lib/pgsql/data
+          name: xs2a-connector-data
+      restartPolicy: Always
+      volumes:
+      - name: xs2a-connector-data
+        persistentVolumeClaim:
+          claimName: xs2a-connector-data
+      - configMap:
+          name: create-schema
+        name: startup-script
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: xs2a-consent-management.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-consent-management
+  name: xs2a-consent-management
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.service.expose: xs2a-consent-management.adorsys.staging.tribefire.cloud
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: xs2a-consent-management
+    spec:
+      containers:
+      - env:
+        - name: ASPSP-PROFILE_BASEURL
+          value: http://xs2a-aspsp-profile.psd2-sandbox.svc.cluster.local:48080/api/v1
+        - name: SERVER_KEY
+          value: secret123
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: cms
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:postgresql://xs2a-consent-management-db.psd2-sandbox.svc.cluster.local/consent?currentSchema=consent
+        - name: SPRING_DATASOURCE_USERNAME
+          value: cms
+        - name: SPRING_LIQUIBASE_ENABLED
+          value: "true"
+        - name: USED-NON-RECURRING-CONSENT-EXPIRATION.CRON.EXPRESSION
+          value: 0 0 * * * *
+        image: adorsys/xs2a-consent-management:5.11
+        name: xs2a-consent-management
+        ports:
+        - containerPort: 8080
+        resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: xs2a-online-banking-ui.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-online-banking-ui
+  name: xs2a-online-banking-ui
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.service.expose: xs2a-online-banking-ui.adorsys.staging.tribefire.cloud
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: xs2a-online-banking-ui
+    spec:
+      containers:
+      - env:
+        - name: DEV_PORTAL_URL_EXT
+          value: http://localhost:4206
+        - name: ONLINE_BANKING_SERVER_URL
+          value: http://xs2a-online-banking.psd2-sandbox.svc.cluster.local:8090
+        image: adorsys/xs2a-online-banking-ui:3.2
+        name: xs2a-online-banking-ui
+        ports:
+        - containerPort: 4400
+        resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.service.expose: xs2a-online-banking.adorsys.staging.tribefire.cloud
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-online-banking
+  name: xs2a-online-banking
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.service.expose: xs2a-online-banking.adorsys.staging.tribefire.cloud
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: xs2a-online-banking
+    spec:
+      containers:
+      - env:
+        - name: CMS_URL
+          value: http://xs2a-consent-management.psd2-sandbox.svc.cluster.local:38080
+          #value: https://xs2a-consent-management.adorsys.staging.tribefire.cloud
+        - name: LEDGERS_URL
+          value: http://ledgers.psd2-sandbox.svc.cluster.local:8088
+        - name: OBA_URL
+          value: https://xs2a-online-banking-ui.adorsys.staging.tribefire.cloud
+        - name: ONLINE-BANKING_URL
+          value: https://xs2a-online-banking.adorsys.staging.tribefire.cloud/api/v1/consents/confirm/{userLogin}/{consentId}/{authorizationId}/{tan}
+        - name: ONLINE_BANKING_SCA_LOGINPAGE
+          value: https://xs2a-online-banking-ui.adorsys.staging.tribefire.cloud
+        - name: ONLINE_BANKING_SCA_UIREDIRECT
+          value: "true"
+        - name: SELF_URL
+          value: https://xs2a-online-banking.adorsys.staging.tribefire.cloud
+        - name: SERVER_KEY
+          value: secret123
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: cms
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:postgresql://xs2a-consent-management-db/consent?currentSchema=consent
+        - name: SPRING_DATASOURCE_USERNAME
+          value: cms
+        - name: XS2A_URL
+          value: https://xs2a-connector-examples:8089
+        image: adorsys/xs2a-online-banking:3.2
+        name: xs2a-online-banking
+        ports:
+        - containerPort: 8090
+        - containerPort: 8000
+        resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-tpp-rest-server
+  name: xs2a-tpp-rest-server
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: xs2a-tpp-rest-server
+    spec:
+      containers:
+      - env:
+        - name: LEDGERS_URL
+          value: http://ledgers.psd2-sandbox.svc.cluster.local:8088
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: cms
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:postgresql://xs2a-consent-management-db.psd2-sandbox.svc.cluster.local/consent?currentSchema=consent
+        - name: SPRING_DATASOURCE_USERNAME
+          value: cms
+        image: adorsys/xs2a-tpp-rest-server:3.2
+        name: xs2a-tpp-rest-server
+        ports:
+        - containerPort: 8093
+        - containerPort: 5005
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/lib/data
+          name: xs2a-tpp-rest-server-data
+      restartPolicy: Always
+      volumes:
+      - name: xs2a-tpp-rest-server-data
+        persistentVolumeClaim:
+          claimName: xs2a-tpp-rest-server-data
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -o manifests
+    kompose.version: 1.19.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-tpp-ui
+  name: xs2a-tpp-ui
+  namespace: psd2-sandbox
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -o manifests
+        kompose.version: 1.19.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: xs2a-tpp-ui
+    spec:
+      containers:
+      - env:
+        - name: CERT_GEN_ENABLED
+          value: "true"
+        - name: CERT_GEN_URL
+          value: http://certificate-generator.psd2-sandbox.svc.cluster.local:8092
+        - name: TPP_REST_SERVER_URL
+          value: http://xs2a-tpp-rest-server.psd2-sandbox.svc.cluster.local:8093
+        image: adorsys/xs2a-bank-tpp-ui:3.2
+        name: xs2a-tpp-ui
+        ports:
+        - containerPort: 4205
+        resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: ledgers
+  name: ledgers
+  namespace: psd2-sandbox
+spec:
+  rules:
+  - host: ledgers.adorsys.staging.tribefire.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: ledgers
+          servicePort: 8088
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-aspsp-profile
+  name: xs2a-aspsp-profile
+  namespace: psd2-sandbox
+spec:
+  rules:
+  - host: xs2a-aspsp-profile.adorsys.staging.tribefire.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: xs2a-aspsp-profile
+          servicePort: 48080
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-connector-examples
+  name: xs2a-connector-examples
+  namespace: psd2-sandbox
+spec:
+  rules:
+  - host: xs2a-connector-examples.adorsys.staging.tribefire.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: xs2a-connector-examples
+          servicePort: 8089
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-consent-management
+  name: xs2a-consent-management
+  namespace: psd2-sandbox
+spec:
+  rules:
+  - host: xs2a-consent-management.adorsys.staging.tribefire.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: xs2a-consent-management
+          servicePort: 38080
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-online-banking-ui
+  name: xs2a-online-banking-ui
+  namespace: psd2-sandbox
+spec:
+  rules:
+  - host: xs2a-online-banking-ui.adorsys.staging.tribefire.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: xs2a-online-banking-ui
+          servicePort: 4400
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-online-banking
+  name: xs2a-online-banking
+  namespace: psd2-sandbox
+spec:
+  rules:
+  - host: xs2a-online-banking.adorsys.staging.tribefire.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: xs2a-online-banking
+          servicePort: 8090
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: xs2a-tpp-ui
+  name: xs2a-tpp-ui
+  namespace: psd2-sandbox
+spec:
+  rules:
+  - host: xs2a-tpp-ui.adorsys.staging.tribefire.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: xs2a-tpp-ui
+          servicePort: 4205
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: developer-portal-ui
+  name: developer-portal-ui
+  namespace: psd2-sandbox
+spec:
+  rules:
+  - host: developer-portal-ui.adorsys.staging.tribefire.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: developer-portal-ui
+          servicePort: 4206
+status:
+  loadBalancer: {}
